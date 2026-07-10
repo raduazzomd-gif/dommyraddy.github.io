@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mixed Editions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-stage: #08080b;
+    --bg-floor: #111117;
+    --panel: #15151c;
+    --text-primary: #f3efe6;
+    --text-muted: #8b8b96;
+    --text-faint: #55555f;
+    --accent-gold: #c9a227;
+    --divider: rgba(255,255,255,0.08);
+    --spot-warm: 255, 244, 214;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg-stage);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    height: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  }
+
+  /* ---------- Ambient stage backdrop ---------- */
+  .stage-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255,255,255,0.035), transparent 70%),
+      linear-gradient(180deg, #0a0a0e 0%, #08080b 55%, #0d0d10 100%);
+  }
+  .stage-bg::after{
+    content:"";
+    position:absolute; inset:0;
+    background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 3px 3px;
+    opacity:0.4;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    position: relative;
+    z-index: 2;
+    padding: clamp(28px, 6vw, 56px) clamp(20px, 6vw, 64px) 0;
+  }
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-gold);
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 340;
+    font-style: italic;
+    font-size: clamp(28px, 5vw, 44px);
+    line-height: 1.05;
+    margin-top: 10px;
+    color: var(--text-primary);
+  }
+  header p {
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 46ch;
+  }
+
+  /* ---------- Stage / carousel ---------- */
+  .stage {
+    position: relative;
+    z-index: 2;
+    margin-top: clamp(36px, 8vw, 72px);
+    height: min(58vh, 480px);
+    display: flex;
+    align-items: center;
+  }
+
+  .beam-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    transition: background 0.5s ease;
+  }
+
+  .rail {
+    display: flex;
+    align-items: center;
+    gap: clamp(28px, 5vw, 64px);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 0 calc(50vw - 100px) 40px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    width: 100%;
+    z-index: 2;
+    position: relative;
+  }
+  .rail::-webkit-scrollbar { display: none; }
+
+  .card {
+    scroll-snap-align: center;
+    flex: 0 0 auto;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.45s cubic-bezier(.2,.8,.2,1), opacity 0.45s ease, filter 0.45s ease;
+    opacity: 0.35;
+    filter: saturate(0.5) brightness(0.55);
+    transform: scale(0.82) translateY(6px);
+  }
+  .card.active {
+    opacity: 1;
+    filter: saturate(1) brightness(1);
+    transform: scale(1) translateY(0);
+  }
+
+  .cover-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .cover {
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 6px;
+    object-fit: cover;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.7);
+    display: block;
+  }
+  .card.active .cover {
+    box-shadow:
+      0 0 0 1px rgba(201,162,39,0.5),
+      0 40px 80px -20px rgba(0,0,0,0.85),
+      0 0 90px -10px rgba(255,244,214,0.35);
+  }
+
+  /* floor reflection */
+  .reflection {
+    width: 100%;
+    aspect-ratio: 1/0.55;
+    margin-top: 2px;
+    background-size: cover;
+    background-position: center top;
+    transform: scaleY(-1);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.28), transparent 80%);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0.28), transparent 80%);
+    opacity: 0.5;
+    border-radius: 6px;
+    filter: blur(0.5px);
+  }
+  .card:not(.active) .reflection { opacity: 0.15; }
+
+  /* ---------- Index / meta row ---------- */
+  .index-row {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 0 clamp(20px, 6vw, 64px);
+  }
+  .index-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+  .index-line {
+    flex: 1;
+    height: 1px;
+    background: var(--divider);
+  }
+  .dots {
+    display: flex;
+    gap: 8px;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .dot.active { background: var(--accent-gold); transform: scale(1.3); }
+
+  /* ---------- Detail panel ---------- */
+  .detail {
+    position: relative;
+    z-index: 2;
+    padding: 28px clamp(20px, 6vw, 64px) clamp(60px, 10vw, 100px);
+    max-width: 720px;
+  }
+  .detail .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .detail h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 560;
+    font-size: clamp(24px, 4vw, 34px);
+    margin-top: 8px;
+    line-height: 1.15;
+    transition: opacity 0.3s ease;
+  }
+  .detail .artist {
+    font-size: 13px;
+    color: var(--accent-gold);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+  }
+  .detail p.desc {
+    margin-top: 16px;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 58ch;
+  }
+  .play-btn {
+    margin-top: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 22px;
+    border: 1px solid rgba(201,162,39,0.4);
+    border-radius: 999px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    background: rgba(201,162,39,0.06);
+    transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+  }
+  .play-btn:hover {
+    background: rgba(201,162,39,0.16);
+    border-color: rgba(201,162,39,0.8);
+    transform: translateY(-1px);
+  }
+  .play-btn svg { width: 13px; height: 13px; fill: var(--accent-gold); }
+
+  footer {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 20px;
+    color: var(--text-faint);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 560px) {
+    .card { width: 148px; }
+    .rail { padding: 0 calc(50vw - 74px) 30px; gap: 22px; }
+    .stage { height: 46vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage-bg"></div>
+
+<header>
+  <div class="kicker">DommyRaddy &middot; Mixed Editions</div>
+  <h1>Non&#8209;stop mixes,<br>one album at a time.</h1>
+  <p>A running collection of era-exclusive playlists &mdash; tap or scroll to bring one into the spotlight, then open it in Spotify.</p>
+</header>
+
+<section class="stage">
+  <div class="beam-layer" id="beamLayer"></div>
+  <div class="rail" id="rail"></div>
+</section>
+
+<div class="index-row">
+  <span class="index-num" id="indexNum">01 / 03</span>
+  <div class="index-line"></div>
+  <div class="dots" id="dots"></div>
+</div>
+
+<div class="detail">
+  <div class="eyebrow">Now in the spotlight</div>
+  <h2 id="detailTitle"></h2>
+  <div class="artist" id="detailArtist"></div>
+  <p class="desc" id="detailDesc"></p>
+  <a class="play-btn" id="detailLink" href="#" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    Play on Spotify
+  </a>
+</div>
+
+<footer>Updated whenever a new mix drops</footer>
+
+<script>
+  // ---- Add new playlists here. That's the only edit needed to update the page. ----
+  const albums = [
+    {
+      title: "WOR$T GIRL IN AMERICA \u2022 MIXED EDITION",
+      artist: "Slayyyter",
+      desc: "A non-stop mix exclusively from Slayyyter's WOR$T GIRL IN AMERICA era \u2014 St. Louis skater-girl chaos, Y2K electroclash, and a menacing rabbit mascot included.",
+      cover: "covers/worst-girl.jpg",
+      url: "https://open.spotify.com/playlist/1BYHqlz48cgWsLpWkx42bK"
+    },
+    {
+      title: "The Life of a Showgirl \u2022 Mixed Edition",
+      artist: "Taylor Swift",
+      desc: "A non-stop mix exclusively from Taylor Swift's Life of a Showgirl era, plus narration, acoustic versions, and remixes \u2014 mischievous, flirty, and the official 180\u00b0 turn from Tortured Poets.",
+      cover: "covers/showgirl.jpg",
+      url: "https://open.spotify.com/playlist/4b5t8ZSkAbPCIvGpdoUCJM"
+    },
+    {
+      title: "The Loneliest/Loveliest Time \u2022 Mixed Edition",
+      artist: "Carly Rae Jepsen",
+      desc: "A non-stop mix spanning the heartbreak and hope of Carly Rae Jepsen's Loneliest/Loveliest Time era.",
+      cover: "covers/loneliest-loveliest.jpg",
+      url: "https://open.spotify.com/playlist/7dDT3vgxvBea09man6HHBp"
+    }
+  ];
+
+  const rail = document.getElementById('rail');
+  const dotsWrap = document.getElementById('dots');
+  const beamLayer = document.getElementById('beamLayer');
+
+  albums.forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.index = i;
+    card.innerHTML = `
+      <div class="cover-wrap">
+        <img class="cover" src="${a.cover}" alt="${a.title}">
+      </div>
+      <div class="reflection" style="background-image:url('${a.cover}')"></div>
+    `;
+    card.addEventListener('click', () => {
+      card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+    rail.appendChild(card);
+
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    dotsWrap.appendChild(dot);
+  });
+
+  const cards = [...rail.querySelectorAll('.card')];
+  const dots = [...dotsWrap.querySelectorAll('.dot')];
+  const total = albums.length;
+
+  function renderBeam(idx, cardEl) {
+    const rect = cardEl.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const pct = (centerX / window.innerWidth) * 100;
+    beamLayer.style.background = `
+      radial-gradient(ellipse 32vw 60vh at ${pct}% 8%, rgba(var(--spot-warm), 0.14), transparent 62%),
+      radial-gradient(ellipse 20vw 40vh at ${pct}% 100%, rgba(var(--spot-warm), 0.08), transparent 70%)
+    `;
+  }
+
+  function setActive(idx) {
+    cards.forEach((c, i) => c.classList.toggle('active', i === idx));
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    const a = albums[idx];
+    document.getElementById('detailTitle').textContent = a.title;
+    document.getElementById('detailArtist').textContent = a.artist.toUpperCase();
+    document.getElementById('detailDesc').textContent = a.desc;
+    document.getElementById('detailLink').href = a.url;
+    document.getElementById('indexNum').textContent =
+      String(idx + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0');
+    renderBeam(idx, cards[idx]);
+  }
+
+  let ticking = false;
+  function findCentered() {
+    const railRect = rail.getBoundingClientRect();
+    const center = railRect.left + railRect.width / 2;
+    let closest = 0, closestDist = Infinity;
+    cards.forEach((c, i) => {
+      const r = c.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const dist = Math.abs(cx - center);
+      if (dist < closestDist) { closestDist = dist; closest = i; }
+    });
+    return closest;
+  }
+
+  rail.addEventListener('scroll', () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(() => {
+        setActive(findCentered());
+        ticking = false;
+      });
+    }
+  });
+
+  window.addEventListener('resize', () => setActive(findCentered()));
+
+  // init
+  requestAnimationFrame(() => setActive(0));
+</script>
+
+</body>
+</html>
